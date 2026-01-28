@@ -19,7 +19,7 @@ Séaghan Fisher
 
 ## Program Overview
 
-The payroll processing application is a software that assists users in processing multiple CSV files and converting them into a readable table of employee payroll information. Users can upload CSV files of employee information (including personal info, timetables, pay rate, and bonuses) into the program to process the data, perform calculations, and return a structured table in a readable format. The software aims to provide a simple and efficient way to process employee payroll information and create a single table with all relevant data.
+The payroll processing application is a software that assists users in processing multiple CSV files and converting them into a readable table of employee payroll information and creating individual payslips. Users can upload CSV files of employee information (including personal info, timetables, and pay rate) into the program to process the data, perform calculations, and return a structured table in a readable format. The program will also create individual payslips for each employee based on hours worked that week, while automatically calculating the PAYE and USC tax. The software aims to provide a simple and efficient way to process employee payroll information and create a single table with all relevant data.
 
 The application will be developed using the Python programming language in conjunction with the procedural design philosophy.
 
@@ -27,13 +27,14 @@ The application will be developed using the Python programming language in conju
 
 ### Functional Requirements
 
-- Read timetable, rate, and PPSN from CSV
-- Calculate salary
+- Read timetable, rate, and personal info CSV files
+- Extract relevant info
+- Calculate gross pay
 - Calculate tax (PAYE and USC)
-- Calculate salary after tax
-- Calculate weekly income before and after tax
-- Pivot table with all the calculated data
-- Payslip for every worker
+- Calculate net pay
+- Calculate total gross, net, and tax paid so far this year
+- Create payroll report summarising company expenditure
+- Create individual payslips for each employee
 
 ### Technical Requirements
 
@@ -41,13 +42,13 @@ The application will be developed using the Python programming language in conju
 - Language: Developed Python, ensuring wide support and maintainability
 - Database: CSV files
 
-### Input format
+## Input format
 
-#### PPSN
+#### Personal Info
 
 ```csv
-PPSN, Name
-1234567A, John Doe
+PPSN, Name, EmployeeNo, Dep
+1234567A, John Doe, 1, IT
 ```
 
 #### Timetable
@@ -64,13 +65,34 @@ PPSN, Rate
 1234567A, 15
 ```
 
-### Output format
+## Output format
 
-#### Payroll table
+### 1. Payroll table
 
-| Name | PPSN | Weekly Gross | Weekly PAYE | Weekly USC | Weekly Net | Yearly Gross | Yearly PAYE | Yearly USC | Yearly Net |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| John Doe | 1234567A | €1,000.00 | €25.00 | €5.00 | €970.00 | €52,000.00 | €1,300.00 | €260.00 | €50,440.00 |
+| Employee no | Employee | Department | Hours | Gross Pay | Net Take-Home | Tax Liability |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | John Doe | IT | 40 | €620.00 | €557.82 | €62.18 |
+
+| Description | Total Amount |
+| :--- | :--- |
+| **Total Gross Payroll** | **€4,249.75** |
+| **Total Net Pay** | **€3,449.09** |
+| **Total Tax** | **€800.66** |
+
+
+### 2. Payslip
+| Employee Details | | | | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Payroll Period Info | |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Name:** | John Doe | **Emp No:** | 1 | | **Date:** | 28/01/2026 |
+| **PPSN:** | 1234567A | **Department:** | IT | | **Pay Week** | 5 |
+
+| Description | Amount | Deductions | Amount |
+| :--- | :--- | :--- | :--- |
+| **Gross Pay** | **€620.00** | PAYE | €51.88 |
+| | | USC | €10.30 |
+| --- | --- | --- | --- |
+| **Total Earnings** | **€620.00** | **Total Tax** | **€62.18** |
+**NET PAY: €557.82**
 
 ## Testing Approach
 
