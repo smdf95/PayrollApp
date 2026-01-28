@@ -9,13 +9,15 @@ Séaghan Fisher
   - [Program Requirements](#program-requirements)
     - [Functional Requirements](#functional-requirements)
     - [Technical Requirements](#technical-requirements)
-    - [Input format](#input-format)
-      - [PPSN](#ppsn)
-      - [Timetable](#timetable)
-      - [Rate](#rate)
-    - [Output format](#output-format)
-      - [Payroll table](#payroll-table)
+  - [Input Format](#input-format)
+    - [Personal Info](#personal-info)
+    - [Timetable](#timetable)
+    - [Rate](#rate)
+  - [Output Format](#output-format)
+    - [Payroll Table](#1-payroll-table)
+    - [Payslip](#2-payslip)
   - [Testing Approach](#testing-approach)
+
 
 ## Program Overview
 
