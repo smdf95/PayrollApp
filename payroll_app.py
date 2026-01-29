@@ -28,7 +28,7 @@ salary_dict = {} # Dictionary to congregate and store info from CSV files
 
 # Input data from CSV file to dictionary
 read_csv(INPUT_EMPLOYEE_INFO_CSV_FILENAME, salary_dict, ['Name', 'EmployeeNo', 'Dep'])
-read_csv(INPUT_TIMETABLE_CSV_FILENAME, salary_dict, ['Hours'])
+read_csv(INPUT_TIMETABLE_CSV_FILENAME, salary_dict, ['Hours', 'Hours_Scheduled'])
 read_csv(INPUT_RATES_CSV_FILENAME, salary_dict, ['Rate'])
 
 # Procedural Function for PAYE
@@ -45,7 +45,7 @@ def calculate_paye(gross):
         tax = (cutoff * Decimal('0.20')) + ((gross_income - cutoff) * Decimal('0.40'))
     
     # Tax cannot be less than zero
-    return max(0, (tax - credits) / 52)
+    return max(0, (tax - credits))
 
 
 # Procedural Function for USC
@@ -58,11 +58,11 @@ def calculate_usc(gross):
     tier2 = Decimal('28700')
     
     if gross_income <= tier1:
-        return (gross_income * Decimal('0.005')) /52
+        return (gross_income * Decimal('0.005'))
     
     elif gross_income <= tier2:
         return ((tier1 * Decimal('0.005')) + \
-               ((gross_income - tier1) * Decimal('0.02'))) /52
+               ((gross_income - tier1) * Decimal('0.02')))
     
     else:
         # Tier 1 + Tier 2 + the 4% balance
@@ -70,7 +70,12 @@ def calculate_usc(gross):
         tier2_tax = (tier2 - tier1) * Decimal('0.02')
         balance_tax = (gross_income - tier2) * Decimal('0.04')
         
-        return (tier1_tax + tier2_tax + balance_tax) / 52
+        return (tier1_tax + tier2_tax + balance_tax)
+    
+def calculate_overtime(hours, hours_scheduled, rate):
+    overtime_hours = max(0, hours - hours_scheduled)
+    overtime_rate = rate * Decimal('1.5')
+    return overtime_hours * overtime_rate
     
 # Find the output folder
 OUTPUT_FOLDER = os.path.join(CURRENT_DIRECTORY, 'Output')    
@@ -85,6 +90,7 @@ with open(OUTPUT_FILE_NAME, "w", encoding='utf-8') as my_file:
     date = now.strftime("%d/%m/%Y")
 
     gross_total = Decimal(0)
+    overtime_total = Decimal(0)
     net_total = Decimal(0)
     tax_total = Decimal(0)
     employee_total = Decimal(0)
@@ -99,7 +105,7 @@ with open(OUTPUT_FILE_NAME, "w", encoding='utf-8') as my_file:
     my_file.write(f"**Number of Employees: {employee_total}**\n\n")
     
     # Markdown Table Headers
-    cols = ["Employee no", "Employee", "Department", "Hours", "Gross Pay", "Net Take-Home", "Tax Liability"]
+    cols = ["Employee no", "Employee", "Department", "Hours", "Overtime Hours", "Gross Pay", "Overtime Pay", "Net Take-Home", "Tax Liability"]
     my_file.write("| " + " | ".join(cols) + " |\n")
     my_file.write("| " + " | ".join([":---"] * len(cols)) + " |\n")
 
@@ -108,15 +114,18 @@ with open(OUTPUT_FILE_NAME, "w", encoding='utf-8') as my_file:
         # 1. Base Variables
         rate = Decimal(employee['Rate'])
         hours = Decimal(employee['Hours'])
+        overtime_hours = max(0, hours - Decimal(employee['Hours_Scheduled']))
         
         # 2. Weekly Variables
-        gross = rate * hours
-        paye = calculate_paye(gross)  # Calculating based on yearly projection
-        usc = calculate_usc(gross)
+        overtime = calculate_overtime(hours, Decimal(employee['Hours_Scheduled']), rate)
+        gross = (rate * hours) + overtime
+        paye = calculate_paye(gross) / Decimal('52') # Calculating based on yearly projection
+        usc = calculate_usc(gross) / Decimal('52')
         tax = paye + usc
         net = gross - tax
 
         gross_total += gross
+        overtime_total += overtime
         net_total += net
         tax_total += tax
         
@@ -132,7 +141,9 @@ with open(OUTPUT_FILE_NAME, "w", encoding='utf-8') as my_file:
             employee['Name'],
             employee['Dep'],
             str(hours),
+            str(overtime_hours),
             f"€{gross:,.2f}",
+            f"€{overtime:,.2f}",
             f"€{net:,.2f}",
             f"€{tax:,.2f}"
         ]
@@ -145,9 +156,10 @@ with open(OUTPUT_FILE_NAME, "w", encoding='utf-8') as my_file:
     # A small summary table for the "Big Picture"
     my_file.write("| Description | Total Amount |\n")
     my_file.write("| :--- | :--- |\n")
-    my_file.write(f"| **Total Gross Payroll (Budget)** | **€{gross_total:,.2f}** |\n")
-    my_file.write(f"| **Total Net Pay (Cash Outflow)** | **€{net_total:,.2f}** |\n")
-    my_file.write(f"| **Total Tax to Remit (Revenue)** | **€{tax_total:,.2f}** |\n\n")
+    my_file.write(f"| **Total Gross Payroll** | **€{gross_total:,.2f}** |\n")
+    my_file.write(f"| **Total Overtime Paid** | **€{overtime_total:,.2f}** |\n")
+    my_file.write(f"| **Total Net Pay** | **€{net_total:,.2f}** |\n")
+    my_file.write(f"| **Total Tax to Remit** | **€{tax_total:,.2f}** |\n\n")
 
     my_file.write(f"**Note:** This report summarises the expenditure for Week {pay_week}")
 
@@ -165,11 +177,14 @@ for i in salary_dict:
         date = now.strftime("%d/%m/%Y")
         rate = Decimal(employee['Rate'])
         hours = Decimal(employee['Hours'])
+        overtime_hours = max(0, hours - Decimal(employee['Hours_Scheduled']))
         
         # Weekly Variables
-        gross = rate * hours
-        paye = calculate_paye(gross)  # Calculating based on yearly projection
-        usc = calculate_usc(gross)
+        overtime = calculate_overtime(hours, Decimal(employee['Hours_Scheduled']), rate)
+        gross_before_ot = rate * hours
+        gross = gross_before_ot + overtime
+        paye = calculate_paye(gross) / Decimal('52') # Calculating based on yearly projection
+        usc = calculate_usc(gross) / Decimal('52')
         tax = paye + usc
         net = gross - tax
         
@@ -186,24 +201,29 @@ for i in salary_dict:
         my_file.write(f"---\n\n")
 
         # 2. Employee Information Block
-        my_file.write("| Employee Details | | | | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Payroll Period Info | |\n")
+        my_file.write("| Employee Details | | | | | Payroll Period Info | |\n")
         my_file.write("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n")
         my_file.write(f"| **Name:** | {employee['Name']} | **Emp No:** | {employee['EmployeeNo']} | | **Date:** | {date} |\n")
         my_file.write(f"| **PPSN:** | {i} | **Department:** | {employee['Dep']} | | **Pay Week** | {pay_week} |\n")
-        my_file.write(f"| **Rate:** | €{rate}/hr | **Hours:** | {hours} |\n\n")
+        my_file.write(f"| **Hours:** | {hours} | **Overtime Hours:** | {overtime_hours} |\n\n")
 
         # 3. Main Financial Table
         my_file.write("### EARNINGS AND DEDUCTIONS\n")
         my_file.write("| Description | Amount | Deductions | Amount |\n")
         my_file.write("| :--- | :--- | :--- | :--- |\n")
-        my_file.write(f"| **Gross Pay** | **€{gross:,.2f}** | PAYE | €{paye:,.2f} |\n")
-        my_file.write(f"| | | USC | €{usc:,.2f} |\n")
+        my_file.write(f"| **Gross Pay** | **€{gross_before_ot:,.2f}** | PAYE | €{paye:,.2f} |\n")
+        if overtime_hours > 0:
+            my_file.write(f"| **Overtime** | **€{overtime:,.2f}** | USC | €{usc:,.2f} |\n")
+        else:
+            my_file.write(f"| | | USC | €{usc:,.2f} |\n")
         my_file.write("| --- | --- | --- | --- |\n")
-        my_file.write(f"| **Total Earnings** | **€{gross:,.2f}** | **Total Tax** | **€{tax:,.2f}** |\n\n")
-        my_file.write(f"## NET PAY: €{net:,.2f}\n")
+        my_file.write(f"| **Total Earnings** | **€{gross:,.2f}** | **Total Deductions** | **€{tax:,.2f}** |\n\n")
+        my_file.write(f"### NET PAY: €{net:,.2f}\n")
+        my_file.write(f"---\n\n")
+
 
         # 4. Payment-to-Date
-        my_file.write("### CUMULATIVE DETAILS\n")
+        my_file.write("### YEAR-TO-DATE (YTD) PAY\n")
         my_file.write("| Description | Total |\n")
         my_file.write("| :--- | :--- |\n")
         my_file.write(f"| **Gross Pay** | €{gross_to_date:,.2f} |\n")
