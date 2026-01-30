@@ -1,3 +1,8 @@
+# Author: Séaghan Fisher
+# Date: 30-01-2026
+# The program reads employee data from CSV files, performs payroll calculations,
+# and generates a summary payroll report and individual payslips in Markdown format.
+
 import os
 import csv
 from decimal import Decimal
